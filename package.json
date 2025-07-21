@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.14.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "job": "npx ts-node app.ts"
   },
@@ -10,15 +14,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.0.3",
-    "puppeteer": "^20.2.1",
-    "request": "^2.88.2",
-    "ts-node": "^10.9.1"
+    "dotenv": "^16.4.5",
+    "puppeteer": "^22.8.0",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
-    "@types/node": "^20.2.1",
+    "@types/node": "^20.14.0",
     "@types/puppeteer": "^7.0.4",
-    "@types/request": "^2.48.8",
-    "typescript": "^5.0.4"
+    "typescript": "^5.6.3"
   }
 }
