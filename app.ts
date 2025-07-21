@@ -56,7 +56,19 @@ const lotto = async () => {
   console.log(`USER_PASSWORD => ${USER_PW.replace(/./g, "*")}`);
   console.log(`envionment loaded!`);
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu",
+    ],
+  });
   // const browser = await puppeteer.launch({ headless: false });
 
   const page = await browser.newPage();
