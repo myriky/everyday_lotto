@@ -384,16 +384,32 @@ const lotto = async () => {
   }
 
   try {
-    // popReceipt를 찾을 수 없으면 더 긴 타임아웃으로 재시도
-    if (!pageState.popReceiptExists) {
-      console.log(`[8-10] #popReceipt를 찾을 수 없습니다. 5초 더 대기 후 재시도...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    // 이미 요소가 존재하고 보이는 경우 바로 진행, 아니면 대기
+    let result = null;
+    if (pageState.popReceiptExists && pageState.popReceiptVisible) {
+      console.log(`[8-10] #popReceipt가 이미 존재하고 보입니다. 바로 진행...`);
+      result = await page.$("#popReceipt");
+      
+      if (!result) {
+        console.log(`[8-11] 요소를 가져올 수 없습니다. 잠시 대기 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        result = await page.$("#popReceipt");
+      }
+    } else {
+      console.log(`[8-10] #popReceipt를 찾을 수 없습니다. 대기 중...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      await page.waitForSelector("#popReceipt", {
+        visible: true,
+        timeout: 15000, // 타임아웃을 15초로 증가
+      });
+      
+      result = await page.$("#popReceipt");
     }
 
-    await page.waitForSelector("#popReceipt", {
-      visible: true,
-      timeout: 10000, // 타임아웃을 10초로 증가
-    });
+    if (!result) {
+      throw new Error("#popReceipt 요소를 찾을 수 없습니다.");
+    }
 
     await page.evaluate(() => {
       console.log("[9] remove unnecessary elements...");
@@ -403,9 +419,8 @@ const lotto = async () => {
       document.querySelector("div.explain")?.remove();
     });
 
-    const result = await page.$("#popReceipt");
-
-    console.log(result);
+    // 요소를 다시 가져와서 최신 상태 확인
+    result = await page.$("#popReceipt");
 
     if (result) {
       console.log("[10] screenshot...");
