@@ -420,14 +420,72 @@ const lotto = async () => {
     });
 
     // 요소를 다시 가져와서 최신 상태 확인
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 요소 제거 후 안정화 대기
     result = await page.$("#popReceipt");
 
     if (result) {
       console.log("[10] screenshot...");
 
-      const b64string: string = (await result?.screenshot({
-        encoding: "base64",
-      })) as string;
+      // 요소가 실제로 보이는지 확인
+      const elementInfo = await page.evaluate(() => {
+        const el = document.querySelector("#popReceipt");
+        if (!el) return { exists: false, visible: false, rect: null };
+        const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        const visible = (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.opacity !== '0' &&
+          rect.width > 0 &&
+          rect.height > 0
+        );
+        return {
+          exists: true,
+          visible,
+          rect: {
+            x: Math.round(rect.x),
+            y: Math.round(rect.y),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        };
+      });
+
+      console.log(`[10-1] 요소 정보:`, elementInfo);
+
+      let b64string: string;
+      
+      if (elementInfo.exists && elementInfo.visible && elementInfo.rect) {
+        // 요소가 보이면 요소만 스크린샷 시도
+        try {
+          b64string = (await result.screenshot({
+            encoding: "base64",
+          })) as string;
+          console.log(`[10-2] 요소 스크린샷 성공`);
+        } catch (error) {
+          console.log(`[10-2] 요소 스크린샷 실패, 영역 스크린샷 시도: ${error}`);
+          // 요소 스크린샷 실패 시 해당 영역만 스크린샷
+          try {
+            b64string = (await page.screenshot({
+              encoding: "base64",
+              clip: elementInfo.rect,
+            })) as string;
+            console.log(`[10-3] 영역 스크린샷 성공`);
+          } catch (clipError) {
+            console.log(`[10-3] 영역 스크린샷 실패, 페이지 전체 스크린샷 시도: ${clipError}`);
+            // 영역 스크린샷도 실패하면 페이지 전체
+            b64string = (await page.screenshot({
+              encoding: "base64",
+            })) as string;
+          }
+        }
+      } else {
+        console.log(`[10-2] 요소가 보이지 않음, 페이지 전체 스크린샷 시도`);
+        // 요소가 보이지 않으면 페이지 전체 스크린샷
+        b64string = (await page.screenshot({
+          encoding: "base64",
+        })) as string;
+      }
 
       //슬랙을 사용하려면 해당 주석을 풀고, .env 파일에 SLACK_BOT_TOKEN을 추가해야 합니다.
 
