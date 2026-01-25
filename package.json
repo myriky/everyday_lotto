@@ -8,7 +8,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "job": "npx ts-node app.ts"
+    "job": "npx ts-node app.ts",
+    "dev": "DEV_MODE=true npx ts-node app.ts"
   },
   "keywords": [],
   "author": "",
