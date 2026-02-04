@@ -28,7 +28,6 @@ const sendImageToSlack = async ({
     );
   }
 
-  console.log(`SLACK_BOT_TOKEN => ${ENV_SLACK_BOT_TOKEN}`);
   console.log(`SLACK_CHANNEL => ${ENV_CHANNEL}`);
 
   const buffer: Buffer = Buffer.from(base64fromImage, "base64");
@@ -42,17 +41,16 @@ const sendImageToSlack = async ({
       throw new Error(`Invalid file length: ${fileSize}`);
     }
 
-    const formBody = new URLSearchParams();
-    formBody.append("filename", filename);
-    formBody.append("length", String(lengthNum));
-
     const getUploadUrlResponse = await fetch(SLACK_GET_UPLOAD_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ENV_SLACK_BOT_TOKEN}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json; charset=utf-8",
       },
-      body: formBody.toString(),
+      body: JSON.stringify({
+        filename,
+        length: lengthNum,
+      }),
     });
 
     if (!getUploadUrlResponse.ok) {
@@ -159,7 +157,6 @@ const sendMessageToSlack = async ({ message }: { message: string }) => {
     );
   }
 
-  console.log(`SLACK_BOT_TOKEN => ${ENV_SLACK_BOT_TOKEN}`);
   console.log(`SLACK_CHANNEL => ${ENV_CHANNEL}`);
 
   try {
