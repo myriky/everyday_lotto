@@ -24,7 +24,7 @@ const sendImageToSlack = async ({
 }) => {
   if (ENV_SLACK_BOT_TOKEN === undefined || ENV_CHANNEL === undefined) {
     throw new Error(
-      `SLACK_BOT_TOKEN, SLACK_CHANNEL must be defined in .env file`
+      `SLACK_BOT_TOKEN, SLACK_CHANNEL must be defined in .env file`,
     );
   }
 
@@ -35,32 +35,63 @@ const sendImageToSlack = async ({
   const fileSize = buffer.length;
 
   try {
-    // Step 1: Get upload URL
+    // Step 1: Get upload URL (Slack accepts form-urlencoded or JSON; form is widely used)
     console.log("[Slack] Step 1: Getting upload URL...");
+    const lengthNum = Number(fileSize);
+    if (!Number.isInteger(lengthNum) || lengthNum <= 0) {
+      throw new Error(`Invalid file length: ${fileSize}`);
+    }
+
+    const formBody = new URLSearchParams();
+    formBody.append("filename", filename);
+    formBody.append("length", String(lengthNum));
+
     const getUploadUrlResponse = await fetch(SLACK_GET_UPLOAD_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${ENV_SLACK_BOT_TOKEN}`,
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${ENV_SLACK_BOT_TOKEN}`,
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify({
-        filename: filename,
-        length: fileSize,
-      }),
+      body: formBody.toString(),
     });
 
     if (!getUploadUrlResponse.ok) {
       const errorText = await getUploadUrlResponse.text();
-      throw new Error(`Failed to get upload URL: ${getUploadUrlResponse.status} ${errorText}`);
+      throw new Error(
+        `Failed to get upload URL: ${getUploadUrlResponse.status} ${errorText}`,
+      );
     }
 
-    const uploadData = await getUploadUrlResponse.json();
-    
+    const uploadData = (await getUploadUrlResponse.json()) as {
+      ok: boolean;
+      error?: string;
+      upload_url?: string;
+      file_id?: string;
+      response_metadata?: { messages?: string[] };
+    };
+
     if (!uploadData.ok) {
-      throw new Error(`Slack API error: ${uploadData.error || "Unknown error"}`);
+      const errMsg = uploadData.error || "Unknown error";
+      const errDetail =
+        uploadData.response_metadata?.messages?.join("; ") || "";
+      console.error(
+        "[Slack] getUploadURLExternal response:",
+        JSON.stringify(uploadData),
+      );
+      throw new Error(
+        `Slack API error: ${errMsg}${errDetail ? ` (${errDetail})` : ""}`,
+      );
     }
 
-    const { upload_url, file_id } = uploadData;
+    const upload_url = uploadData.upload_url;
+    const file_id = uploadData.file_id;
+    if (!upload_url || !file_id) {
+      console.error(
+        "[Slack] getUploadURLExternal response:",
+        JSON.stringify(uploadData),
+      );
+      throw new Error("Slack API did not return upload_url or file_id");
+    }
 
     // Step 2: Upload file to the URL
     console.log("[Slack] Step 2: Uploading file...");
@@ -74,7 +105,9 @@ const sendImageToSlack = async ({
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      throw new Error(`Failed to upload file: ${uploadResponse.status} ${errorText}`);
+      throw new Error(
+        `Failed to upload file: ${uploadResponse.status} ${errorText}`,
+      );
     }
 
     // Step 3: Complete upload
@@ -82,7 +115,7 @@ const sendImageToSlack = async ({
     const completeResponse = await fetch(SLACK_COMPLETE_UPLOAD, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${ENV_SLACK_BOT_TOKEN}`,
+        Authorization: `Bearer ${ENV_SLACK_BOT_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -99,13 +132,17 @@ const sendImageToSlack = async ({
 
     if (!completeResponse.ok) {
       const errorText = await completeResponse.text();
-      throw new Error(`Failed to complete upload: ${completeResponse.status} ${errorText}`);
+      throw new Error(
+        `Failed to complete upload: ${completeResponse.status} ${errorText}`,
+      );
     }
 
     const completeData = await completeResponse.json();
-    
+
     if (!completeData.ok) {
-      throw new Error(`Slack API error: ${completeData.error || "Unknown error"}`);
+      throw new Error(
+        `Slack API error: ${completeData.error || "Unknown error"}`,
+      );
     }
 
     console.log(`[${ENV_CHANNEL}] Send image to slack completed!`);
@@ -118,7 +155,7 @@ const sendImageToSlack = async ({
 const sendMessageToSlack = async ({ message }: { message: string }) => {
   if (ENV_SLACK_BOT_TOKEN === undefined || ENV_CHANNEL === undefined) {
     throw new Error(
-      `SLACK_BOT_TOKEN, SLACK_CHANNEL must be defined in .env file`
+      `SLACK_BOT_TOKEN, SLACK_CHANNEL must be defined in .env file`,
     );
   }
 
@@ -129,7 +166,7 @@ const sendMessageToSlack = async ({ message }: { message: string }) => {
     const response = await fetch(SLACK_POST_MESSAGE, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${ENV_SLACK_BOT_TOKEN}`,
+        Authorization: `Bearer ${ENV_SLACK_BOT_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -140,11 +177,13 @@ const sendMessageToSlack = async ({ message }: { message: string }) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to send message: ${response.status} ${errorText}`);
+      throw new Error(
+        `Failed to send message: ${response.status} ${errorText}`,
+      );
     }
 
     const data = await response.json();
-    
+
     if (!data.ok) {
       throw new Error(`Slack API error: ${data.error || "Unknown error"}`);
     }
