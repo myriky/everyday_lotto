@@ -28,14 +28,10 @@ const sendImageToSlack = async ({
     );
   }
 
-  console.log(`SLACK_CHANNEL => ${ENV_CHANNEL}`);
-
   const buffer: Buffer = Buffer.from(base64fromImage, "base64");
   const fileSize = buffer.length;
 
   try {
-    // Step 1: Get upload URL (Slack accepts form-urlencoded or JSON; form is widely used)
-    console.log("[Slack] Step 1: Getting upload URL...");
     const lengthNum = Number(fileSize);
     if (!Number.isInteger(lengthNum) || lengthNum <= 0) {
       throw new Error(`Invalid file length: ${fileSize}`);
@@ -75,7 +71,7 @@ const sendImageToSlack = async ({
       const errDetail =
         uploadData.response_metadata?.messages?.join("; ") || "";
       console.error(
-        "[Slack] getUploadURLExternal response:",
+        "📤 [Slack] 업로드 URL 요청 실패:",
         JSON.stringify(uploadData),
       );
       throw new Error(
@@ -87,14 +83,12 @@ const sendImageToSlack = async ({
     const file_id = uploadData.file_id;
     if (!upload_url || !file_id) {
       console.error(
-        "[Slack] getUploadURLExternal response:",
+        "📤 [Slack] 업로드 URL 응답에 upload_url/file_id 없음:",
         JSON.stringify(uploadData),
       );
       throw new Error("Slack API did not return upload_url or file_id");
     }
 
-    // Step 2: Upload file to the URL
-    console.log("[Slack] Step 2: Uploading file...");
     const uploadResponse = await fetch(upload_url, {
       method: "PUT",
       headers: {
@@ -110,8 +104,6 @@ const sendImageToSlack = async ({
       );
     }
 
-    // Step 3: Complete upload
-    console.log("[Slack] Step 3: Completing upload...");
     const completeResponse = await fetch(SLACK_COMPLETE_UPLOAD, {
       method: "POST",
       headers: {
@@ -144,10 +136,8 @@ const sendImageToSlack = async ({
         `Slack API error: ${completeData.error || "Unknown error"}`,
       );
     }
-
-    console.log(`[${ENV_CHANNEL}] Send image to slack completed!`);
   } catch (error) {
-    console.error("Error sending image to Slack:", error);
+    console.error("📤 [Slack] 이미지 전송 실패:", error);
     throw error;
   }
 };
@@ -158,8 +148,6 @@ const sendMessageToSlack = async ({ message }: { message: string }) => {
       `SLACK_BOT_TOKEN, SLACK_CHANNEL must be defined in .env file`,
     );
   }
-
-  console.log(`SLACK_CHANNEL => ${ENV_CHANNEL}`);
 
   try {
     const response = await fetch(SLACK_POST_MESSAGE, {
@@ -186,10 +174,8 @@ const sendMessageToSlack = async ({ message }: { message: string }) => {
     if (!data.ok) {
       throw new Error(`Slack API error: ${data.error || "Unknown error"}`);
     }
-
-    console.log(`[${ENV_CHANNEL}] Send message to slack completed!`);
   } catch (error) {
-    console.error("Error sending message to Slack:", error);
+    console.error("📤 [Slack] 메시지 전송 실패:", error);
     throw error;
   }
 };
