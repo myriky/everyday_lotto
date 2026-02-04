@@ -41,16 +41,18 @@ const sendImageToSlack = async ({
       throw new Error(`Invalid file length: ${fileSize}`);
     }
 
+    // files.getUploadURLExternal은 application/x-www-form-urlencoded만 파싱함 (JSON 시 filename/length 미수신)
+    const formBody = new URLSearchParams();
+    formBody.set("filename", filename);
+    formBody.set("length", String(lengthNum));
+
     const getUploadUrlResponse = await fetch(SLACK_GET_UPLOAD_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ENV_SLACK_BOT_TOKEN}`,
-        "Content-Type": "application/json; charset=utf-8",
+        "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
       },
-      body: JSON.stringify({
-        filename,
-        length: lengthNum,
-      }),
+      body: formBody.toString(),
     });
 
     if (!getUploadUrlResponse.ok) {
