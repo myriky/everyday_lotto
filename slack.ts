@@ -90,11 +90,11 @@ const sendImageToSlack = async ({
     }
 
     const uploadResponse = await fetch(upload_url, {
-      method: "PUT",
+      method: "POST",
       headers: {
         "Content-Type": filetype,
       },
-      body: new Uint8Array(buffer),
+      body: new Blob([new Uint8Array(buffer)], { type: filetype }),
     });
 
     if (!uploadResponse.ok) {
@@ -103,6 +103,10 @@ const sendImageToSlack = async ({
         `Failed to upload file: ${uploadResponse.status} ${errorText}`,
       );
     }
+
+    console.log(
+      `📤 [Slack] 파일 업로드 완료 (${uploadResponse.status}, file_id: ${file_id})`,
+    );
 
     const completeResponse = await fetch(SLACK_COMPLETE_UPLOAD, {
       method: "POST",
@@ -129,7 +133,16 @@ const sendImageToSlack = async ({
       );
     }
 
-    const completeData = await completeResponse.json();
+    const completeData = (await completeResponse.json()) as {
+      ok: boolean;
+      error?: string;
+      files?: unknown[];
+    };
+
+    console.log(
+      `📤 [Slack] 업로드 완료 응답:`,
+      JSON.stringify(completeData),
+    );
 
     if (!completeData.ok) {
       throw new Error(
