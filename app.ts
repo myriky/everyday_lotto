@@ -10,6 +10,8 @@ const URL_GAME = "https://ol.dhlottery.co.kr/olotto/game/game645.do";
 const SELECTOR_ID_FOR_LOGIN = "#inpUserId";
 const SELECTOR_PASSWORD_FOR_LOGIN = "#inpUserPswdEncn";
 
+const SELECTOR_BUTTON_FOR_PASSWORD_LATER = "#btnCancel";
+
 const SELECTOR_BUTTON_FOR_WAY_TO_BUY = "#num1";
 
 const SELECTOR_BUTTON_LOTTO_NUMBER = Array.from(
@@ -125,11 +127,34 @@ const lotto = async () => {
 
   try {
     await page.waitForNavigation({ timeout: 10000, waitUntil: "networkidle2" });
-    console.log("  ✅ 로그인 완료\n");
   } catch (error) {
     console.error("  ❌ 로그인 실패:", error);
     throw error;
   }
+
+  // 장기간 비밀번호 미변경 시 안내 페이지(/mbrsrvc/ExpryPswdNoti)로 리다이렉트됨.
+  // "다음에 변경"을 눌러야 세션이 완성되며, 30일 연장은 쿠키 기반이라 CI에서는 매번 표시됨.
+  if (page.url().includes("ExpryPswdNoti")) {
+    console.log("  🔔 비밀번호 변경 안내 페이지 감지 → '다음에 변경' 클릭");
+    try {
+      await page.waitForSelector(SELECTOR_BUTTON_FOR_PASSWORD_LATER, {
+        timeout: 10000,
+        visible: true,
+      });
+      await Promise.all([
+        page.waitForNavigation({ timeout: 10000, waitUntil: "networkidle2" }),
+        page.click(SELECTOR_BUTTON_FOR_PASSWORD_LATER),
+      ]);
+    } catch (error) {
+      console.error("  ❌ 비밀번호 변경 안내 처리 실패:", error);
+      throw error;
+    }
+  }
+
+  if (page.url().includes("/login") || page.url().includes("ExpryPswdNoti")) {
+    throw new Error(`로그인 후 예상치 못한 페이지에 머물러 있습니다: ${page.url()}`);
+  }
+  console.log("  ✅ 로그인 완료\n");
 
   console.log("🎮 [게임]");
   console.log("  📄 게임 페이지 이동 중...");
