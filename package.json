@@ -9,7 +9,8 @@
   },
   "scripts": {
     "job": "npx ts-node app.ts",
-    "dev": "DEV_MODE=true npx ts-node app.ts"
+    "dev": "DEV_MODE=true npx ts-node app.ts",
+    "result": "npx ts-node result.ts"
   },
   "keywords": [],
   "author": "",

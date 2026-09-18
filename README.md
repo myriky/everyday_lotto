@@ -110,3 +110,19 @@ jobs:
 cron schedule 문법은 아래를 참고하세요
 
 https://crontab.guru/
+
+## 주간 당첨 결과 알림
+
+매주 토요일 추첨 후, 당첨번호와 이번 주 구매분의 당/낙첨 결과를 Slack으로 전송합니다.
+
+```
+$ npm run result
+```
+
+- 당첨번호: https://www.dhlottery.co.kr/lt645/result (로그인 불필요)
+- 구매/당첨 내역: https://www.dhlottery.co.kr/mypage/mylotteryledger (로그인 필요, 최근 1주일)
+- 추첨 직후 "추첨중" 상태면 10분 간격으로 재조회하며 최대 60분 대기합니다. (`RESULT_MAX_WAIT_MINUTES`로 조정)
+
+.github/workflows/result.yml 이 토요일 23:00 KST (`0 14 * * 6` UTC)에 실행합니다.
+
+> GitHub는 60일간 커밋이 없으면 스케줄 워크플로우를 자동 비활성화합니다. 멈춰 있으면 Actions 탭에서 다시 활성화하세요.
