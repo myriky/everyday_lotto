@@ -25,6 +25,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Install Korean fonts (영수증 스크린샷 한글 렌더링용)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          fc-cache -f
+          fc-list :lang=ko | head -3
       - run: npm ci
       - run: npm run build --if-present
       - run: npm run job
